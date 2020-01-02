@@ -3,13 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sns
-from sklearn.feature_selection import VarianceThreshold,chi2
+from sklearn.feature_selection import VarianceThreshold, chi2
 import gc
 import os
 from datetime import date
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
-
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import MeanShift
 
@@ -31,6 +30,49 @@ pd.set_option('display.max_rows', 200)
 pd.set_option('display.max_columns', 200)
 pd.set_option('max_colwidth', 200)
 
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
+from pandas.api.types import is_categorical_dtype
+
+def reduce_mem_usage(df, use_float16=False):
+    """
+    Iterate through all the columns of a dataframe and modify the data type to reduce memory usage.
+    """
+
+    start_mem = df.memory_usage().sum() / 1024 ** 2
+    print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
+
+    for col in df.columns:
+        if is_datetime(df[col]) or is_categorical_dtype(df[col]):
+            continue
+        col_type = df[col].dtype
+
+        if col_type != object:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == "int":
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)
+            else:
+                if use_float16 and c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)
+        else:
+            df[col] = df[col].astype("category")
+
+    end_mem = df.memory_usage().sum() / 1024 ** 2
+    print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
+    print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
+
+    return df
 
 # 编码：yes == 1, no == 0
 def get_dummy_from_bool(row, column_name):
@@ -121,6 +163,7 @@ def rf_interpolation(df, i):
 
     return data
 
+
 def knn_interpolation(df, i):
     tmp = df.copy()
     data = encoding(tmp)
@@ -142,11 +185,13 @@ def train_rf(trainX, trainY, testX):
     test_predictY = forest.predict(testX).astype(int)
     return pd.DataFrame(test_predictY, index=testX.index)
 
+
 def train_knn(trainX, trainY, testX):
     knn = KNeighborsClassifier()
     knn = knn.fit(trainX, trainY)
     test_predictY = knn.predict(testX).astype(int)
     return pd.DataFrame(test_predictY, index=testX.index)
+
 
 # 剔除EDA发现的异常值
 def drop_incorrect(df):
@@ -291,24 +336,23 @@ def corr_filter(data, plot=False):
 
 
 if __name__ == '__main__':
+    # if os.path.exists(path):
+    #     train = pd.read_csv(path)
+    # else:
+    PATH = "data/"
+    train = pd.read_csv(PATH + 'bank-full.csv', sep=';')
+    # train = reduce_mem_usage(train, use_float16=True)
+    print(train.shape)
+    train = data_preprocess(train)
+    print(train.shape)
+    print(train.head(5))
+
+    # feature selection
+    train = variance_filter(train)
+    train = corr_filter(train, plot=True)
+    train = mutual_info_classif_filter(train)
     path = 'process_data/process_data.csv'
-    if os.path.exists(path):
-        train = pd.read_csv(path)
-    else:
-        PATH = "data/"
-        train = pd.read_csv(PATH + 'bank-full.csv', sep=';')
-        print(train.shape)
-        train = data_preprocess(train)
-        print(train.shape)
-        print(train.head(5))
-
-        # feature selection
-        train = variance_filter(train)
-        train = corr_filter(train, plot=True)
-        train = mutual_info_classif_filter(train)
-
-        train.to_csv(path, index=False)
-
+    train.to_csv(path, index=False)
 
     # df_new = train.copy()
     # introduce new column 'balance_buckets' to  ''
