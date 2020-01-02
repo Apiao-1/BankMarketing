@@ -3,11 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sns
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import VarianceThreshold,chi2
 import gc
 import os
 from datetime import date
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import MeanShift
@@ -46,6 +47,12 @@ def get_correct_values(row, column_name, threshold, df):
 
 
 def encoding(df):
+    sparse_features = train.select_dtypes(include='object').columns.tolist()
+    dense_features = train.select_dtypes(include='int').columns.tolist()
+    sparse_features.remove('y')
+    print(len(sparse_features), sparse_features)
+    print(len(dense_features), dense_features)
+
     # 将yes与no的进行编码
     bool_columns = ['default', 'housing', 'loan', 'y']
     for bool_col in bool_columns:
@@ -57,6 +64,9 @@ def encoding(df):
         df = pd.concat(
             [df.drop(col, axis=1), pd.get_dummies(df[col], prefix=col, prefix_sep='_',
                                                   drop_first=True, dummy_na=False)], axis=1)
+    # 数值型特征归一化
+    scaler = StandardScaler()
+    df[dense_features] = scaler.fit_transform(df[dense_features])
 
     return df
 
@@ -70,7 +80,7 @@ Percentage of "unknown" in poutcome： 36959 / 45211
 '''
 
 
-def fill_unknown(df, ues_rf_interpolation=True):
+def fill_unknown(df, ues_rf_interpolation=True, use_knn_interpolation=False):
     fill_attrs = ['job', 'education', 'contact', 'poutcome']
     # 出现次数少于5%的字段直接删除
     for i in reversed(fill_attrs):
@@ -83,6 +93,12 @@ def fill_unknown(df, ues_rf_interpolation=True):
         for i in fill_attrs:
             if df[df[i] == 'unknown']['y'].count() / len(df) < 0.25:
                 df = rf_interpolation(df, i)
+                fill_attrs.remove(i)
+
+    if use_knn_interpolation:
+        for i in fill_attrs:
+            if df[df[i] == 'unknown']['y'].count() / len(df) < 0.25:
+                df = knn_interpolation(df, i)
                 fill_attrs.remove(i)
 
     # 出现次数大于25%的保留并视做一类新的类别
@@ -105,13 +121,32 @@ def rf_interpolation(df, i):
 
     return data
 
+def knn_interpolation(df, i):
+    tmp = df.copy()
+    data = encoding(tmp)
 
-def train_predict_unknown(trainX, trainY, testX):
+    test_data = data[data[i] == 'unknown']
+    test_data.drop(i, inplace=True)
+    train_data = data[data[i] != 'unknown']
+    trainY = train_data.pop(i)
+
+    test_data[i] = train_predict_unknown(train_data, trainY, test_data)
+    data = pd.concat([train_data, test_data])
+
+    return data
+
+
+def train_rf(trainX, trainY, testX):
     forest = RandomForestClassifier(n_estimators=100)
     forest = forest.fit(trainX, trainY)
     test_predictY = forest.predict(testX).astype(int)
     return pd.DataFrame(test_predictY, index=testX.index)
 
+def train_knn(trainX, trainY, testX):
+    knn = KNeighborsClassifier()
+    knn = knn.fit(trainX, trainY)
+    test_predictY = knn.predict(testX).astype(int)
+    return pd.DataFrame(test_predictY, index=testX.index)
 
 # 剔除EDA发现的异常值
 def drop_incorrect(df):
@@ -139,12 +174,6 @@ def q30(x):
 
 
 def feature_engineering(df):
-    sparse = train.select_dtypes(include='object').columns.tolist()
-    dense = train.select_dtypes(include='int').columns.tolist()
-    sparse.remove('y')
-    print(len(sparse), sparse)
-    print(len(dense), dense)
-
     # 年龄分箱
     df['age_buckets'] = pd.qcut(df['age'], 20, labels=False, duplicates='drop')
     age = df[['age_buckets', 'balance']]
@@ -220,6 +249,24 @@ def variance_filter(data):
     return data
 
 
+def mutual_info_classif_filter(data, plot=False):
+    train = data.copy()
+    y = train.pop('y')
+    xbest = SelectKBest(mutual_info_classif, k='all').fit(train, y)
+
+    scores = pd.DataFrame(xbest.scores_)
+    columns = pd.DataFrame(data.columns)
+    colscores = pd.concat([columns, scores], axis=1)
+    colscores.columns = ['col', 'score']
+    if plot:
+        print(colscores.sort_values(by='score', axis=0, ascending=False))
+    # filter = colscores[colscores['score'] > 0]['col'].values
+    drop_columns = colscores[colscores['score'] <= 0]['col'].values
+    print("mutual_info_classif_filter del feature: ", drop_columns)
+    data.drop(drop_columns, axis=1, inplace=True)
+    return data
+
+
 def corr_filter(data, plot=False):
     sns.set(rc={'figure.figsize': (25, 25)})
     corr = data.corr()
@@ -256,11 +303,12 @@ if __name__ == '__main__':
         print(train.head(5))
 
         # feature selection
-        variance_data = variance_filter(train)
-        del train
-        gc.collect()
-        corr_data = corr_filter(variance_data, plot=True)
-        corr_data.to_csv(path, index=False)
+        train = variance_filter(train)
+        train = corr_filter(train, plot=True)
+        train = mutual_info_classif_filter(train)
+
+        train.to_csv(path, index=False)
+
 
     # df_new = train.copy()
     # introduce new column 'balance_buckets' to  ''
