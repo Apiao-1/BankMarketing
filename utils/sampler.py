@@ -6,10 +6,13 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold, KFold
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+import feature_engineering
 
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
+
 
 def over_sampler(df):
     # col = df.columns.tolist()
@@ -21,6 +24,7 @@ def over_sampler(df):
     print(X_smo.shape, y_smo.shape)
     return X_smo, y_smo
 
+
 def under_sampler(df):
     X = df.copy()
     y = X.pop('y')
@@ -29,6 +33,7 @@ def under_sampler(df):
     X_under, y_under = under.fit_sample(X, y)
     print(X_under.shape, y_under.shape)
     return X_under, y_under
+
 
 def train_lgbm(X, y, plot=False):
     data = pd.DataFrame(y)
@@ -66,7 +71,7 @@ def train_lgbm(X, y, plot=False):
             plt.ylabel('Feature Importance Score')
             plt.show()
 
-        y_pred = model.predict_proba(X_val, num_iteration=model.best_iteration_)[:,1]
+        y_pred = model.predict_proba(X_val, num_iteration=model.best_iteration_)[:, 1]
         auc = roc_auc_score(y_true, y_pred)
         print("AUC score at %d floder: %f" % (i, auc))
         scores.append(auc)
@@ -78,7 +83,6 @@ def train_lgbm(X, y, plot=False):
     print("----train lgbm finish!----")
     print(roc_auc_score(data['y'], data['y_pred']))
 
-    return data['y_pred']
 
 if __name__ == '__main__':
     data = pd.read_csv('../process_data/process_data.csv')
@@ -88,7 +92,8 @@ if __name__ == '__main__':
 
     # X,y = over_sampler(data)
     # X,y = under_sampler(data)
+
     # tmp = pd.DataFrame(X)
     # print(tmp.shape)
 
-    train_lgbm(X,y,plot=False)
+    train_lgbm(X, y, plot=False)
