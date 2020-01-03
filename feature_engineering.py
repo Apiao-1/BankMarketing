@@ -4,10 +4,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.feature_selection import VarianceThreshold, chi2
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.ensemble import RandomForestClassifier
+import os
+from utils import sampler
+from utils import inputs
 
 import warnings
 
@@ -19,6 +22,7 @@ pd.set_option('max_colwidth', 200)
 
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 from pandas.api.types import is_categorical_dtype
+
 
 def reduce_mem_usage(df, use_float16=False):
     """
@@ -61,14 +65,15 @@ def reduce_mem_usage(df, use_float16=False):
 
     return df
 
+
 # 编码：yes == 1, no == 0
 def get_dummy_from_bool(row, column_name):
     return 1 if row[column_name] == 'yes' else 0
 
 
 def encoding(df):
-    sparse_features = train.select_dtypes(include='object').columns.tolist()
-    dense_features = train.select_dtypes(include='int').columns.tolist()
+    sparse_features = df.select_dtypes(include='object').columns.tolist()
+    dense_features = df.select_dtypes(include='int').columns.tolist()
     sparse_features.remove('y')
     print(len(sparse_features), sparse_features)
     print(len(dense_features), dense_features)
@@ -81,9 +86,13 @@ def encoding(df):
     # 对类别特征独热编码
     cat_columns = ['job', 'marital', 'education', 'contact', 'month', 'poutcome']
     for col in cat_columns:
-        df = pd.concat(
-            [df.drop(col, axis=1), pd.get_dummies(df[col], prefix=col, prefix_sep='_',
-                                                  drop_first=True, dummy_na=False)], axis=1)
+        df = pd.concat([df.drop(col, axis=1), pd.get_dummies(df[col], prefix=col, prefix_sep='_',
+                                                             drop_first=True, dummy_na=False)], axis=1)
+
+    # for feat in cat_columns:
+    #     lbe = LabelEncoder()
+    #     df[feat] = lbe.fit_transform(df[feat])
+
     # 数值型特征归一化
     scaler = StandardScaler()
     df[dense_features] = scaler.fit_transform(df[dense_features])
@@ -98,6 +107,8 @@ Percentage of "unknown" in education： 1857 / 45211
 Percentage of "unknown" in contact： 13020 / 45211
 Percentage of "unknown" in poutcome： 36959 / 45211
 '''
+
+
 def fill_unknown(df, ues_rf_interpolation=True, use_knn_interpolation=False):
     fill_attrs = ['job', 'education', 'contact', 'poutcome']
     # 出现次数少于5%的字段直接删除
@@ -229,11 +240,15 @@ def feature_engineering(df):
     return df
 
 
-def data_preprocess(df):
+def data_preprocess(use_encoding=True):
+    PATH = "/Users/a_piao/PycharmProjects/BankMarketing/data/"
+    df = pd.read_csv(PATH + 'bank-full.csv', sep=';')
+
     df = drop_incorrect(df)
     df = fill_unknown(df, ues_rf_interpolation=False)
     df = feature_engineering(df)
-    df = encoding(df)
+    if use_encoding:
+        df = encoding(df)
 
     return df
 
@@ -292,15 +307,56 @@ def corr_filter(data, plot=False):
     return data
 
 
+def get_train_data(use_over_sampler=False, plot=False):
+    tree_path = 'process_data/process_data_dummy.csv'
+    if os.path.exists(tree_path):
+        train = pd.read_csv(tree_path, sep=';')
+    else:
+        train = data_preprocess(use_encoding=True)
+        print(train.shape)
+        print(train.head(5))
+
+        # feature selection
+        train = variance_filter(train)
+        train = corr_filter(train, plot=plot)
+        train = mutual_info_classif_filter(train, plot=plot)
+        train.to_csv(tree_path, index=False)
+
+    if use_over_sampler:
+        X, y = sampler.over_sampler(train)
+    else:
+        X = train.copy()
+        y = X.pop('y')
+
+    return X, y
+
+
+def get_NN_data(use_over_sampler=False):
+    data = data_preprocess(use_encoding=False)
+    sparse_features = ['job', 'marital', 'education', 'contact', 'month', 'poutcome', 'default', 'housing', 'loan', 'y']
+    dense_features = [fea for fea in data.columns if fea not in sparse_features]
+
+    for feat in sparse_features:
+        lbe = LabelEncoder()
+        data[feat] = lbe.fit_transform(data[feat])
+    sparse_features.remove('y')
+
+    scaler = StandardScaler()
+    data[dense_features] = scaler.fit_transform(data[dense_features])
+
+    if use_over_sampler:
+        X, y = sampler.over_sampler(data)
+    else:
+        X = train.copy()
+        y = X.pop('y')
+
+    sparse_feature_list = [inputs.SparseFeat(feat, data[feat].nunique()) for feat in sparse_features]
+    dense_feature_list = [inputs.DenseFeat(feat, 1, ) for feat in dense_features]
+    return X, y, sparse_feature_list, dense_feature_list
+
+
 if __name__ == '__main__':
-    # if os.path.exists(path):
-    #     train = pd.read_csv(path)
-    # else:
-    PATH = "data/"
-    train = pd.read_csv(PATH + 'bank-full.csv', sep=';')
-    # train = reduce_mem_usage(train, use_float16=True)
-    # print(train.shape)
-    train = data_preprocess(train)
+    train = data_preprocess()
     print(train.shape)
     print(train.head(5))
 
@@ -308,7 +364,7 @@ if __name__ == '__main__':
     train = variance_filter(train)
     train = corr_filter(train, plot=True)
     train = mutual_info_classif_filter(train)
-    path = 'process_data/process_data.csv'
+    path = 'process_data/label_process_data.csv'
     train.to_csv(path, index=False)
 
     # df_new = train.copy()
