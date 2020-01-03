@@ -34,12 +34,12 @@ def train_lgbm(plot=False):
     data = pd.read_csv('process_data/process_data.csv')
 
     # data = pd.read_csv('test/train.csv')
-    # X = data.copy()
-    # y = X.pop('y')    # kFold cv
+    X = data.copy()
+    y = X.pop('y')    # kFold cv
     # X,y = smote(data)
-    X,y = under_sampler(data)
-    tmp = pd.DataFrame(X)
-    print(tmp.shape)
+    # X,y = under_sampler(data)
+    # tmp = pd.DataFrame(X)
+    # print(tmp.shape)
 
     data = pd.DataFrame(y)
     print(data)

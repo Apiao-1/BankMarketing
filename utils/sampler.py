@@ -30,16 +30,9 @@ def under_sampler(df):
     print(X_under.shape, y_under.shape)
     return X_under, y_under
 
-def train_lgbm(plot=False):
-    data = pd.read_csv('../process_data/process_data.csv')
-
-    # X,y = over_sampler(data)
-    X,y = under_sampler(data)
-    tmp = pd.DataFrame(X)
-    print(tmp.shape)
-
+def train_lgbm(X, y, plot=False):
     data = pd.DataFrame(y)
-    print(data)
+
     models = []
     scores = []
 
@@ -88,4 +81,14 @@ def train_lgbm(plot=False):
     return data['y_pred']
 
 if __name__ == '__main__':
-    train_lgbm(plot=False)
+    data = pd.read_csv('../process_data/process_data.csv')
+
+    X = data.copy()
+    y = X.pop('y')
+
+    # X,y = over_sampler(data)
+    # X,y = under_sampler(data)
+    # tmp = pd.DataFrame(X)
+    # print(tmp.shape)
+
+    train_lgbm(X,y,plot=False)
