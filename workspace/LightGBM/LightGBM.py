@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
-from utils import metric,sampler
+import feature_engineering
 
 
 pd.set_option('expand_frame_repr', False)
@@ -12,7 +12,7 @@ pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
 
 def train_lgbm(plot=False):
-    X, y, sparse_list, dense_list = sampler.get_over_sampler_data(NN=True)
+    X, y = feature_engineering.get_train_data(use_over_sampler=True)
     data = pd.DataFrame(y)
     # kFold cv
     models = []

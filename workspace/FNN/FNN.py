@@ -42,7 +42,7 @@ def train_FNN():
             model.load_weights(best_param_path)
         else:
             model.compile("adam", "binary_crossentropy", metrics=['binary_crossentropy'])
-            es = EarlyStopping(monitor='val_binary_crossentropy', mode='min', patience=20)
+            es = EarlyStopping(monitor='val_binary_crossentropy', mode='min', patience=15)
             mc = ModelCheckpoint(best_param_path, monitor='val_binary_crossentropy', mode='min', save_best_only=True,
                                  verbose=False, save_weights_only=True)
             model.fit(X_train, y_train, validation_data=(X_val, y_val), batch_size=1024, epochs=1000, verbose=2,

@@ -308,9 +308,9 @@ def corr_filter(data, plot=False):
 
 
 def get_train_data(use_over_sampler=False, plot=False):
-    tree_path = 'process_data/process_data_dummy.csv'
+    tree_path = '/Users/a_piao/PycharmProjects/BankMarketing/process_data/process_data.csv'
     if os.path.exists(tree_path):
-        train = pd.read_csv(tree_path, sep=';')
+        train = pd.read_csv(tree_path)
     else:
         train = data_preprocess(use_encoding=True)
         print(train.shape)

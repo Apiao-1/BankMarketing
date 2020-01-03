@@ -3,9 +3,9 @@ from sklearn.metrics import roc_auc_score
 import pandas as pd
 import numpy as np
 import os
-from sklearn.model_selection import KFold
-from feature import feature_engineering
+from sklearn.model_selection import StratifiedKFold, KFold
 from models.WideDeep import WDL
+import feature_engineering
 from utils import inputs,metric
 
 pd.set_option('expand_frame_repr', False)
@@ -13,7 +13,9 @@ pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
 
 def train_WDL():
-    X, y, data, sparse_list, dense_list = feature_engineering.get_process_data(plot=True, use_corr=True, use_variance=True, NN=True)
+    X, y, sparse_list, dense_list = feature_engineering.get_NN_data(use_over_sampler=True)
+
+    data = pd.DataFrame(y)
     dnn_feature_columns = linear_feature_columns = sparse_list + dense_list
     feature_names = inputs.get_feature_names(linear_feature_columns + dnn_feature_columns)
 
@@ -21,7 +23,7 @@ def train_WDL():
     models = []
     scores = []
 
-    kf = KFold(n_splits=5, random_state=42)
+    kf = StratifiedKFold(n_splits=5, random_state=42)
     for i, (tdx, vdx) in enumerate(kf.split(X, y)):
         print(f'Fold : {i}')
         X_train, X_val, y_train, y_val = X.loc[tdx], X.loc[vdx], y.loc[tdx], y.loc[vdx]
@@ -39,10 +41,10 @@ def train_WDL():
             model.load_weights(best_param_path)
         else:
             model.compile("adam", "binary_crossentropy", metrics=['binary_crossentropy'])
-            es = EarlyStopping(monitor='val_binary_crossentropy', mode='min', patience=10)
+            es = EarlyStopping(monitor='val_binary_crossentropy', mode='min', patience=15)
             mc = ModelCheckpoint(best_param_path, monitor='val_binary_crossentropy', mode='min', save_best_only=True,
                                  verbose=False, save_weights_only=True)
-            model.fit(X_train, y_train, batch_size=1024, epochs=1000, verbose=2, validation_split=0.2,
+            model.fit(X_train, y_train, validation_data=(X_val, y_val), batch_size=1024, epochs=1000, verbose=2,
                       callbacks=[es, mc])
             model.load_weights(best_param_path)
 
@@ -54,9 +56,10 @@ def train_WDL():
         data.loc[vdx, 'y_pred'] = y_pred
 
     mean_score = np.mean(scores)
-    coupon_mean_score = metric.metric_coupon_AUC(data)
-    print("coupon mean_score:", coupon_mean_score)
+    oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
+    print("5-floder oof auc score:", oof)
+    print("----train Wide&Deep finish!----")
 
 if __name__ == '__main__':
     train_WDL()
