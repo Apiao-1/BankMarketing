@@ -1,25 +1,12 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import seaborn as sns
 from sklearn.feature_selection import VarianceThreshold, chi2
-import gc
-import os
-from datetime import date
-from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import MeanShift
-
-from sklearn.preprocessing import LabelEncoder
-
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import mutual_info_classif
-
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 
 import warnings
@@ -79,15 +66,6 @@ def get_dummy_from_bool(row, column_name):
     return 1 if row[column_name] == 'yes' else 0
 
 
-# 用平均值替换异常值
-def get_correct_values(row, column_name, threshold, df):
-    if row[column_name] <= threshold:
-        return row[column_name]
-    else:
-        mean = df[df[column_name] <= threshold][column_name].mean()
-        return mean
-
-
 def encoding(df):
     sparse_features = train.select_dtypes(include='object').columns.tolist()
     dense_features = train.select_dtypes(include='int').columns.tolist()
@@ -120,8 +98,6 @@ Percentage of "unknown" in education： 1857 / 45211
 Percentage of "unknown" in contact： 13020 / 45211
 Percentage of "unknown" in poutcome： 36959 / 45211
 '''
-
-
 def fill_unknown(df, ues_rf_interpolation=True, use_knn_interpolation=False):
     fill_attrs = ['job', 'education', 'contact', 'poutcome']
     # 出现次数少于5%的字段直接删除
@@ -158,7 +134,7 @@ def rf_interpolation(df, i):
     train_data = data[data[i] != 'unknown']
     trainY = train_data.pop(i)
 
-    test_data[i] = train_predict_unknown(train_data, trainY, test_data)
+    test_data[i] = train_rf(train_data, trainY, test_data)
     data = pd.concat([train_data, test_data])
 
     return data
@@ -173,7 +149,7 @@ def knn_interpolation(df, i):
     train_data = data[data[i] != 'unknown']
     trainY = train_data.pop(i)
 
-    test_data[i] = train_predict_unknown(train_data, trainY, test_data)
+    test_data[i] = train_knn(train_data, trainY, test_data)
     data = pd.concat([train_data, test_data])
 
     return data
@@ -199,15 +175,6 @@ def drop_incorrect(df):
     df = df[df['previous'] <= 24]
     df = df[df['pdays'] <= 400]
     return df
-
-
-def feature_count(data, features):
-    feature_name = 'count'
-    for i in features:
-        feature_name += '_' + i
-    temp = data.groupby(features).size().reset_index().rename(columns={0: feature_name})
-    data = data.merge(temp, 'left', on=features)
-    return data, feature_name
 
 
 def q80(x):
@@ -266,17 +233,7 @@ def data_preprocess(df):
     df = drop_incorrect(df)
     df = fill_unknown(df, ues_rf_interpolation=False)
     df = feature_engineering(df)
-
-    # drop irrelevant columns
-    # df = df.drop(columns=['pdays'])
-
-    # impute incorrect values and drop original columns
-    # df['campaign_cleaned'] = df.apply(lambda row: get_correct_values(row, 'campaign', 34, df), axis=1)
-    # df['previous_cleaned'] = df.apply(lambda row: get_correct_values(row, 'previous', 34, df), axis=1)
-    # df = df.drop(columns=['campaign', 'previous'])
-
     df = encoding(df)
-
 
     return df
 
@@ -342,7 +299,7 @@ if __name__ == '__main__':
     PATH = "data/"
     train = pd.read_csv(PATH + 'bank-full.csv', sep=';')
     # train = reduce_mem_usage(train, use_float16=True)
-    print(train.shape)
+    # print(train.shape)
     train = data_preprocess(train)
     print(train.shape)
     print(train.head(5))
