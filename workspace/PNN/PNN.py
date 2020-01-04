@@ -65,6 +65,8 @@ def train_PNN():
     print("----train %s finish!----" % 'PNN')
     cal_roc_curve(data['y'], data['y_pred'], 'PNN')
 
+    return data['y_pred']
+
 
 if __name__ == '__main__':
     pnn_oof = train_PNN()

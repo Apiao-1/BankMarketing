@@ -12,7 +12,7 @@ pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
 
-def train_rf():
+def train_tree(model):
     X, y = feature_engineering.get_train_data(use_over_sampler=True)
     data = pd.DataFrame(y)
     # kFold cv
@@ -25,7 +25,7 @@ def train_rf():
         X_train, X_val, y_train, y_val = X.loc[tdx], X.loc[vdx], y.loc[tdx], y.loc[vdx]
         y_true = y_val
 
-        model = RandomForestClassifier()
+        # model = RandomForestClassifier()
         model.fit(X_train, y_train)
 
         y_pred = model.predict_proba(X_val)[:,1]
@@ -46,4 +46,25 @@ def train_rf():
     return data['y_pred']
 
 if __name__ == '__main__':
-    rf_oof = train_rf()
+    rf_oof = train_tree(RandomForestClassifier(n_estimators=100,
+                 criterion="gini",
+                 max_depth=7,
+                 min_samples_split=2,
+                 min_samples_leaf=1,
+                 min_weight_fraction_leaf=0.,
+                 max_features="auto",
+                 max_leaf_nodes=None,
+                 min_impurity_decrease=0.,
+                 min_impurity_split=None,
+                 bootstrap=True))
+    gbdt_oof = train_tree(GradientBoostingClassifier(loss='deviance', learning_rate=0.1, n_estimators=100,
+                 subsample=1.0, criterion='friedman_mse', min_samples_split=2,
+                 min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                 max_depth=3, min_impurity_decrease=0.))
+    et_oof = train_tree(ExtraTreesClassifier(n_estimators=100,
+                 criterion="gini",
+                 max_depth=7,
+                 min_samples_split=2,
+                 min_samples_leaf=1,
+                 min_weight_fraction_leaf=0.,
+                 max_features="auto"))

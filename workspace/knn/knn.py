@@ -1,4 +1,3 @@
-
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import roc_auc_score
 import pandas as pd
@@ -7,11 +6,10 @@ from sklearn.model_selection import StratifiedKFold
 import feature_engineering
 from utils.metric import cal_roc_curve
 
-
-
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
+
 
 def train_knn():
     X, y = feature_engineering.get_train_data(use_over_sampler=True)
@@ -26,10 +24,11 @@ def train_knn():
         X_train, X_val, y_train, y_val = X.loc[tdx], X.loc[vdx], y.loc[tdx], y.loc[vdx]
         y_true = y_val
 
-        model = KNeighborsClassifier()
+        model = KNeighborsClassifier(n_neighbors=5,weights='uniform', algorithm='auto', leaf_size=30,
+                                     p=2, metric='minkowski')
         model.fit(X_train, y_train)
 
-        y_pred = model.predict_proba(X_val)[:,1]
+        y_pred = model.predict_proba(X_val)[:, 1]
         auc = roc_auc_score(y_true, y_pred)
         print("AUC score at %d floder: %f" % (i, auc))
         scores.append(auc)
@@ -45,6 +44,7 @@ def train_knn():
     cal_roc_curve(data['y'], data['y_pred'], model.__class__.__name__)
 
     return data['y_pred']
+
 
 if __name__ == '__main__':
     knn_oof = train_knn()
