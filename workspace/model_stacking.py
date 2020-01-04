@@ -1,16 +1,17 @@
 from workspace.LightGBM import LightGBM
 from workspace.CatBoost import CatBoost
 from workspace.DeepFM import DeepFM
-from feature import feature_engineering
-from utils import metric
+from utils.metric import cal_roc_curve
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold,StratifiedKFold
 from sklearn.metrics import roc_auc_score
+import feature_engineering
 
-if __name__ == '__main__':
-    X, y, data = feature_engineering.get_process_data(plot=True, use_corr=True, use_variance=True)
+def model_stacking():
+    X, y = feature_engineering.get_train_data(use_over_sampler=True)
+    data = pd.DataFrame(y)
 
     lgbm = LightGBM.train_lgbm(plot=False)
     print(lgbm.shape)
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     scores = []
     checkpoint_predictions = []
 
-    kf = KFold(n_splits=5, random_state=42)
+    kf = StratifiedKFold(n_splits=5, random_state=42)
     for i, (tdx, vdx) in enumerate(kf.split(X, y)):
         print(f'Fold : {i}')
         X_train, X_val, y_train, y_val = X.loc[tdx], X.loc[vdx], y.loc[tdx], y.loc[vdx]
@@ -42,9 +43,16 @@ if __name__ == '__main__':
         # print(data['y_pred'].value_counts())
 
     mean_score = np.mean(scores)
-    coupon_mean_score = metric.metric_coupon_AUC(data)
-    print("coupon mean_score:", coupon_mean_score)
+    oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
+    print("5-floder oof auc score:", oof)
+    print("----train %s finish!----" % 'Stacking')
+    cal_roc_curve(data['y'], data['y_pred'], 'Stacking')
+
+    return data['y_pred']
+
+if __name__ == '__main__':
+    stakcing_oof = model_stacking()
 
 '''
 (385529,)

@@ -7,10 +7,12 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from models.WideDeep import WDL
 import feature_engineering
 from utils import inputs,metric
+from utils.metric import cal_roc_curve
 
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
+
 
 def train_WDL():
     X, y, sparse_list, dense_list = feature_engineering.get_NN_data(use_over_sampler=True)
@@ -35,7 +37,7 @@ def train_WDL():
         model = WDL(linear_feature_columns, dnn_feature_columns, dnn_hidden_units=(128, 64), task='binary',
                     dnn_dropout=0.5)
 
-        best_param_path = 'best_param_%s_%d.h5' % (os.path.basename(__file__), i)
+        best_param_path = './workspace/WideDeep/best_param_WideDeep.py_%d.h5' % i
 
         if os.path.exists(best_param_path):
             model.load_weights(best_param_path)
@@ -59,10 +61,14 @@ def train_WDL():
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train Wide&Deep finish!----")
+    print("----train %s finish!----" % 'WideDeep')
+    cal_roc_curve(data['y'], data['y_pred'], 'WideDeep')
+
+    return data['y_pred']
+
 
 if __name__ == '__main__':
-    train_WDL()
+   wdl_oof = train_WDL()
 
 
 

@@ -7,6 +7,8 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from models.FNN import FNN
 from utils import inputs
 import feature_engineering
+from utils.metric import cal_roc_curve
+
 
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
@@ -36,7 +38,7 @@ def train_FNN():
         model = FNN(linear_feature_columns, dnn_feature_columns, dnn_hidden_units=(128, 64), task='binary',
                     dnn_dropout=0.5)
 
-        best_param_path = 'best_param_%s_%d.h5' % (os.path.basename(__file__), i)
+        best_param_path = './workspace/FNN/best_param_FNN.py_%d.h5' % i
 
         if os.path.exists(best_param_path):
             model.load_weights(best_param_path)
@@ -61,8 +63,10 @@ def train_FNN():
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train FNN finish!----")
+    print("----train %s finish!----" % 'FNN')
+    cal_roc_curve(data['y'], data['y_pred'], 'FNN')
 
+    return data['y_pred']
 
 if __name__ == '__main__':
-    train_FNN()
+    fnn_oof = train_FNN()

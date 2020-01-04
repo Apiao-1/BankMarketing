@@ -7,6 +7,8 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from models.PNN import PNN
 from utils import inputs,metric
 import feature_engineering
+from utils.metric import cal_roc_curve
+
 
 
 pd.set_option('expand_frame_repr', False)
@@ -35,7 +37,7 @@ def train_PNN():
 
         model = PNN(dnn_feature_columns, dnn_hidden_units=(128, 64), task='binary', dnn_dropout=0.5)
 
-        best_param_path = 'best_param_%s_%d.h5' % (os.path.basename(__file__), i)
+        best_param_path = './workspace/PNN/best_param_PNN.py_%d.h5' % i
 
         if os.path.exists(best_param_path):
             model.load_weights(best_param_path)
@@ -60,11 +62,12 @@ def train_PNN():
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train PNN finish!----")
+    print("----train %s finish!----" % 'PNN')
+    cal_roc_curve(data['y'], data['y_pred'], 'PNN')
 
 
 if __name__ == '__main__':
-    train_PNN()
+    pnn_oof = train_PNN()
 
 
 

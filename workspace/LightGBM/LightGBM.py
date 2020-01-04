@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 import feature_engineering
+from utils.metric import cal_roc_curve
+
 
 
 pd.set_option('expand_frame_repr', False)
@@ -42,7 +44,7 @@ def train_lgbm(plot=False):
                   verbose=False)
 
         ## plot feature importance
-        if plot:
+        if plot and i == 0:
             fscores = pd.Series(model.feature_importances_, X_train.columns).sort_values(ascending=False)
             fscores.plot(kind='bar', title='Feature Importance %d' % i, figsize=(20, 10))
             plt.ylabel('Feature Importance Score')
@@ -60,9 +62,11 @@ def train_lgbm(plot=False):
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train lightGBM finish!----")
+    print("----train %s finish!----" % model.__class__.__name__)
+    cal_roc_curve(data['y'], data['y_pred'], model.__class__.__name__)
 
     return data['y_pred']
+
 
 if __name__ == '__main__':
     train_lgbm(plot=False)

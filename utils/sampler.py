@@ -9,6 +9,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import feature_engineering
 
+
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 200)
@@ -18,10 +19,10 @@ def over_sampler(df):
     # col = df.columns.tolist()
     X = df.copy()
     y = X.pop('y')
-    print(X.shape, y.shape)
+    print("original data: ",X.shape, y.shape)
     smo = SMOTE(random_state=42)
     X_smo, y_smo = smo.fit_sample(X, y)
-    print(X_smo.shape, y_smo.shape)
+    print("after over_sampler: ",X_smo.shape, y_smo.shape)
     return X_smo, y_smo
 
 

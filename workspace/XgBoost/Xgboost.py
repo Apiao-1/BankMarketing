@@ -7,6 +7,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import StratifiedKFold
 import feature_engineering
 from utils import metric
+from utils.metric import cal_roc_curve
 
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
@@ -62,8 +63,11 @@ def train_xgb(plot=False):
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train Xgboost finish!----")
+    print("----train %s finish!----" % model.__class__.__name__)
+    cal_roc_curve(data['y'], data['y_pred'], model.__class__.__name__)
+
+    return data['y_pred']
 
 
 if __name__ == '__main__':
-    train_xgb(plot=True)
+    xgb_oof = train_xgb(plot=True)

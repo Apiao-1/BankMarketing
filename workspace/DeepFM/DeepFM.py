@@ -7,6 +7,7 @@ import os
 from models.DeepFM import DeepFM
 from sklearn.model_selection import StratifiedKFold,KFold
 from utils import inputs
+from utils.metric import cal_roc_curve
 import feature_engineering
 
 
@@ -38,7 +39,7 @@ def train_DeepFM():
         model = DeepFM(linear_feature_columns, dnn_feature_columns, dnn_hidden_units=(128, 64), dnn_use_bn=True,
                        task='binary', dnn_dropout=0.5)
 
-        best_param_path = '/Users/a_piao/PycharmProjects/BankMarketing/workspace/DeepFM/best_param_%s_%d.h5' % (os.path.basename(__file__), i)
+        best_param_path = '/Users/a_piao/PycharmProjects/BankMarketing/workspace/DeepFM/best_param_DeepFM.py_%d.h5' % i
         # best_param_path = 'best_param_%s_%d.h5' % (os.path.basename(__file__), i)
 
         if os.path.exists(best_param_path):
@@ -67,8 +68,11 @@ def train_DeepFM():
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train DeepFM finish!----")
+    print("----train %s finish!----" % 'DeepFM')
+    cal_roc_curve(data['y'], data['y_pred'], 'DeepFM')
+
+    return data['y_pred']
 
 
 if __name__ == '__main__':
-    train_DeepFM()
+    deepfm_oof = train_DeepFM()

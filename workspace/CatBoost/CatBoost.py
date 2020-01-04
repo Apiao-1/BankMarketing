@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
-from utils import sampler
+import feature_engineering
+from utils.metric import cal_roc_curve
+
 
 pd.set_option('expand_frame_repr', False)
 pd.set_option('display.max_rows', 50)
@@ -12,7 +14,7 @@ pd.set_option('display.max_columns', 200)
 
 
 def train_cat(plot=False):
-    X, y = sampler.get_over_sampler_data()
+    X, y = feature_engineering.get_train_data(use_over_sampler=True)
     data = pd.DataFrame(y)
 
     # kFold cv
@@ -61,10 +63,11 @@ def train_cat(plot=False):
     oof = roc_auc_score(data['y'], data['y_pred'])
     print("5-floder total mean_score:", mean_score)
     print("5-floder oof auc score:", oof)
-    print("----train catboost finish!----")
+    print("----train %s finish!----" % model.__class__.__name__)
+    cal_roc_curve(data['y'], data['y_pred'], model.__class__.__name__)
 
     return data['y_pred']
 
 
 if __name__ == '__main__':
-    train_cat(plot=False)
+    cat_oof = train_cat(plot=False)
