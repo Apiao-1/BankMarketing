@@ -364,19 +364,5 @@ if __name__ == '__main__':
     train = variance_filter(train)
     train = corr_filter(train, plot=True)
     train = mutual_info_classif_filter(train)
-    path = 'process_data/label_process_data.csv'
+    path = 'process_data/process_data.csv'
     train.to_csv(path, index=False)
-
-    # df_new = train.copy()
-    # introduce new column 'balance_buckets' to  ''
-    # df_new['balance_buckets'] = pd.qcut(df_new['balance'], 50, labels=False, duplicates='drop')
-    #
-    # # group by 'balance_buckets' and find average campaign outcome per balance bucket
-    # mean_deposit = df_new.groupby(['balance_buckets'])['y'].mean()
-    #
-    # # plot
-    # plt.plot(mean_deposit.index, mean_deposit.values)
-    # plt.title('Mean % subscription depending on account balance')
-    # plt.xlabel('balance bucket')
-    # plt.ylabel('% subscription')
-    # plt.show()
