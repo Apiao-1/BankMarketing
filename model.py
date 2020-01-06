@@ -85,8 +85,6 @@ def train_lgbm(plot=False):
         # print(data['y_pred'].value_counts())
 
     mean_score = np.mean(scores)
-    # coupon_mean_score = metric.metric_coupon_AUC(data)
-    # print("coupon mean_score:", coupon_mean_score)
     print("5-floder total mean_score:", mean_score)
     print("----train lgbm finish!----")
     print(roc_auc_score(data['y'], data['y_pred']))
