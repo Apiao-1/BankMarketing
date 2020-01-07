@@ -55,7 +55,6 @@ def get_test_data(sample_size=1000, sparse_feature_num=1, dense_feature_num=1, s
 def check_model(model, model_name, x, y):
     # # 设定格式化模型名称，以时间戳作为标记
     # model_name = "test"
-    # 设定存储位置，每个模型不一样的路径
     # tensorboard = TensorBoard(log_dir='logs/{}'.format(model_name))
 
     model.compile('adam', 'binary_crossentropy',metrics=['binary_crossentropy'])

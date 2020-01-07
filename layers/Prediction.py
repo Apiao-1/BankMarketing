@@ -4,12 +4,6 @@ from tensorflow.python.keras.layers import Layer
 
 
 class PredictionLayer(Layer):
-    """
-      Arguments
-         - **task**: str, ``"binary"`` for  binary logloss or  ``"regression"`` for regression loss
-
-         - **use_bias**: bool.Whether add bias term or not.
-    """
 
     def __init__(self, task='binary', use_bias=True, **kwargs):
         if task not in ["binary", "multiclass", "regression"]:
@@ -24,7 +18,6 @@ class PredictionLayer(Layer):
             self.global_bias = self.add_weight(
                 shape=(1,), initializer=Zeros(), name="global_bias")
 
-        # Be sure to call this somewhere!
         super(PredictionLayer, self).build(input_shape)
 
     def call(self, inputs, **kwargs):

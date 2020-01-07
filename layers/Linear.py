@@ -22,7 +22,7 @@ class Linear(tf.keras.layers.Layer):
             self.dense = tf.keras.layers.Dense(units=1, activation=None, use_bias=False,
                                                kernel_regularizer=tf.keras.regularizers.l2(self.l2_reg))
 
-        super(Linear, self).build(input_shape)  # Be sure to call this somewhere!
+        super(Linear, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
 

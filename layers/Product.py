@@ -1,25 +1,9 @@
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.initializers import (Zeros, glorot_normal, glorot_uniform)
 
 
 class InnerProductLayer(Layer):
-    """InnerProduct Layer used in PNN that compute the element-wise
-    product or inner product between feature vectors.
-
-      Input shape
-        - a list of 3D tensor with shape: ``(batch_size,1,embedding_size)``.
-
-      Output shape
-        - 3D tensor with shape: ``(batch_size, N*(N-1)/2 ,1)`` if use reduce_sum. or 3D tensor with shape: ``(batch_size, N*(N-1)/2, embedding_size )`` if not use reduce_sum.
-
-      Arguments
-        - **reduce_sum**: bool. Whether return inner product or element-wise product
-
-      References
-            - [Qu Y, Cai H, Ren K, et al. Product-based neural networks for user response prediction[C]//Data Mining (ICDM), 2016 IEEE 16th International Conference on. IEEE, 2016: 1149-1154.](https://arxiv.org/pdf/1611.00144.pdf)
-    """
 
     def __init__(self, reduce_sum=True, **kwargs):
         self.reduce_sum = reduce_sum
@@ -46,8 +30,7 @@ class InnerProductLayer(Layer):
             raise ValueError('A `InnerProductLayer` layer requires '
                              'inputs of a list with same shape tensor like (None,1,embedding_size)'
                              'Got different shapes: %s' % (input_shape[0]))
-        super(InnerProductLayer, self).build(
-            input_shape)  # Be sure to call this somewhere!
+        super(InnerProductLayer, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         if K.ndim(inputs[0]) != 3:
@@ -63,7 +46,7 @@ class InnerProductLayer(Layer):
             for j in range(i + 1, num_inputs):
                 row.append(i)
                 col.append(j)
-        p = tf.concat([embed_list[idx] for idx in row], axis=1)  # batch num_pairs k
+        p = tf.concat([embed_list[idx] for idx in row], axis=1)
         q = tf.concat([embed_list[idx] for idx in col], axis=1)
 
         inner_product = p * q
