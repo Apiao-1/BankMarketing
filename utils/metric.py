@@ -43,6 +43,7 @@ def cal_roc_curve(target, oof, name, threshold=0.5):
 
 
 
+
 def plot_model_result():
     train = pd.DataFrame()
     train['model'] = model
@@ -57,11 +58,12 @@ def plot_model_result():
 def plot_roc_curve():
     lw = 2
     plt.figure(figsize=(10, 10))
-    for i in range(model):
+    for i in range(len(model)):
         model_name = model[i]
         fpr, tpr = FPR[i], TPR[i]
         auc = ROC_AUC_Score[i]
-        plt.plot(fpr, tpr, color='green', lw=lw, label='%s(area = %0.3f)' % (model_name, auc))
+        col = randomcolor()
+        plt.plot(fpr, tpr, color=col, lw=lw, label='%s(area = %0.3f)' % (model_name, auc))
     plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
@@ -79,7 +81,7 @@ def randomcolor():
     return "#" + color
 
 def plot_pr(auc_score, precision, recall, label=None):
-    plt.figure(num=None, figsize=(6, 5))
+    plt.figure(num=None, figsize=(8, 6))
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.0])
     plt.xlabel('Recall')
